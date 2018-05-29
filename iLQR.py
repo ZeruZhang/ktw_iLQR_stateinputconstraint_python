@@ -18,6 +18,7 @@ def print_np(x):
 # In[5]:
 import cost
 import model
+from gps_util import getPlot, getPlotQuad
 
 
 # In[7]:
@@ -44,7 +45,7 @@ class iLQR:
         self.last_head = True
         
         # constraints
-        self.phi = np.ones(self.N+1) * 2
+        self.phi = np.ones(self.N+1) * 0.1
         self.tolConst = 1e-3
         
         # state & input & cost
@@ -57,19 +58,18 @@ class iLQR:
         self.cnew = np.zeros(self.N+1)
         
         # variables for constraints # self.cost.ic,
-        mu_ini = 0.1
+        self.flagConst = False
+        mu_ini = 1e-4 * self.flagConst
         self.Mu = np.tile(np.identity(self.cost.ic),(self.N+1,1,1)) * mu_ini
         self.Munew = np.tile(np.identity(self.cost.ic),(self.N+1,1,1)) * mu_ini
         self.Mu_e = np.tile(np.identity(self.cost.ic),(self.N+1,1,1)) * mu_ini
-        self.lam = np.tile(np.identity(self.cost.ic),(self.N+1,1,1)) * 0.01
+        self.lam = np.tile(np.identity(self.cost.ic),(self.N+1,1,1)) * mu_ini
         
         self.initialize()
         
     def initialize(self) :
         
         self.dV = np.zeros((1,2))
-
-        self.Alpha = np.zeros(11)
         self.Alpha = np.power(10,np.linspace(0,-3,11))
         self.l = np.zeros((self.N,self.model.iu))
         self.L = np.zeros((self.N,self.model.iu,self.model.ix))
@@ -325,6 +325,9 @@ class iLQR:
                         alpha_temp = 1e8 # % signals failure of forward pass
                         pass
                     time_forward = time.clock() - start
+                else :
+                    dcost = 0
+                    expected = 0
                     
                 # step4. accept step, draw graphics, print status 
                 if self.verbosity == True and self.last_head == True:
@@ -388,8 +391,9 @@ class iLQR:
             
             # outer loop updates 
             # terminal condition
+            getPlotQuad(np.expand_dims(self.x,axis=2),np.expand_dims(self.u,axis=2),self.cost.x_t,1,self.N)        
             c_const = self.cost.ineqConst(self.x, np.vstack((self.u,np.zeros(self.model.iu)) )) # N * ic
-            if np.max(c_const) < self.tolConst:
+            if np.max(c_const) < self.tolConst or self.flagConst == False :
                 print("EXIT : max(c) < tolConst")
                 print np.max(c_const)
                 break
@@ -410,10 +414,10 @@ class iLQR:
                         # print "Hi",c_const[i,j],i
                         self.lam[i,j,j] = np.max(( 0, self.lam[i,j,j] + self.Mu_e[i,j,j] * c_const[i,j] ))
                         # print self.lam[i,j,j]
-                        self.phi[i] = self.phi[i] * 1 / 1.5
+                        self.phi[i] = self.phi[i] * 1 / 5
                     else :
                         if self.Mu_e[i,j,j] < 1e30 :
-                            self.Mu_e[i,j,j] = self.Mu_e[i,j,j] * 1.5
+                            self.Mu_e[i,j,j] = self.Mu_e[i,j,j] * 5
                             # print "Hi", self.Mu_e[i,j,j]
                         else :
                             print "Mu reaches the limit"
@@ -426,25 +430,7 @@ class iLQR:
 
                 
 
-                    
-            fS = 18
-            plt.plot(self.x[:,0], self.x[:,1], linewidth=2.0)
-            plt.plot(np.linspace(0,4,10),np.linspace(0,4,10))
-            plt.plot(self.cost.x_t[0],self.cost.x_t[1],"o")
-            plt.gca().set_aspect('equal', adjustable='box')
-            plt.axis([0, 4.0, 0, 4.0])
-            plt.xlabel('X (m)', fontsize = fS)
-            plt.ylabel('Y (m)', fontsize = fS)
-            plt.show()
-            plt.subplot(121)
-            plt.plot(np.array(range(N))*0.1, self.u[:,0], linewidth=2.0)
-            plt.xlabel('time (s)', fontsize = fS)
-            plt.ylabel('v (m/s)', fontsize = fS)
-            plt.subplot(122)
-            plt.plot(np.array(range(N))*0.1, self.u[:,1], linewidth=2.0)
-            plt.xlabel('time (s)', fontsize = fS)
-            plt.ylabel('w (rad/s)', fontsize = fS)
-            plt.show()
+            
 
         # for i in range(self.N+1) :
                     

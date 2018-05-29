@@ -5,6 +5,7 @@
 
 from __future__ import division
 import numpy as np
+import matplotlib.pyplot as plt
 
 def print_np(x):
     print ("Type is %s" % (type(x)))
@@ -107,3 +108,163 @@ def getDesired(P_t,P_c) :
     output = np.hstack((P_des,yaw_des))
 
     return output
+
+def getPlot(x_fit,u_fit_m,x_t,num_fit,N,x_new=None,u_new=None): 
+
+    plt.figure(1,figsize=(20, 7))    
+    plt.subplot(131)
+    plt.axis([-3.0, 3.0, -3.0, 3.0])
+    fS = 18
+    for im in range(num_fit) : 
+        plt.plot(x_fit[:,0,im],x_fit[:,1,im], linewidth=2.0)
+        if not x_new is None :
+            plt.plot(x_new[:,0,im],x_new[:,1,im], linewidth=1.0,linestyle='--')
+    plt.plot(np.linspace(-3,3,10),3 / 2 * np.linspace(-3,3,10) + 3)
+    plt.plot(np.linspace(-3,3,10),- 3 / 2 * np.linspace(-3,3,10) + 3)
+    plt.plot(x_t[0],x_t[1],"o")
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.xlabel('X (m)', fontsize = fS)
+    plt.ylabel('Y (m)', fontsize = fS)
+    plt.grid(True)
+    # plt.show()
+
+    plt.subplot(132)
+    for im in range(num_fit) : 
+        plt.plot(range(0,N),u_fit_m[:,0,im], linewidth=2.0)
+    plt.xlabel('time (s)', fontsize = fS)
+    plt.ylabel('v (m/s)', fontsize = fS)
+
+    plt.subplot(133)
+    for im in range(num_fit) : 
+        plt.plot(range(0,N),u_fit_m[:,1,im], linewidth=2.0)
+    plt.xlabel('time (s)', fontsize = fS)
+    plt.ylabel('w (rad/s)', fontsize = fS)
+    plt.show()
+    plt.figure(2,figsize=(20, 7))
+    for im in range(num_fit) : 
+        plt.plot(range(0,N+1),getFOA(x_t,x_fit[:,:,im]), linewidth=2.0)
+    plt.plot(range(0,N),u_fit_m[:,0,im]*0 + 0.6, linewidth=1.0,linestyle='--')   
+    plt.plot(range(0,N),u_fit_m[:,0,im]*0 - 0.6, linewidth=1.0,linestyle='--')  
+    plt.xlabel('time (s)', fontsize = fS)
+    plt.ylabel('angle (rad/s)', fontsize = fS)
+    plt.show()
+
+def getFOA(x_t,x) :
+
+    ndim = np.ndim(x)
+    if ndim == 1: # 1 step state & input
+        N = 1
+        x = np.expand_dims(x,axis=0)
+    else :
+        N = np.size(x,axis = 0)
+
+    # theta diff
+    y_diff = np.zeros((N,1))
+    x_diff = np.zeros((N,1))
+    y_diff[:,0] = x_t[1] - x[:,1]
+    x_diff[:,0] = x_t[0] - x[:,0]
+    
+    theta_target = np.arctan2(y_diff,x_diff)
+    theta_diff = - np.expand_dims(x[:,2],1) + theta_target
+
+    # return theta_diff
+    return np.squeeze(theta_diff,axis=1)
+
+
+def getPlotQuad(x_fit,u_fit_m,x_t,num_fit,N,x_new=None,u_new=None): 
+
+    plt.figure(1,figsize=(20, 7))    
+    plt.subplot(121)
+    plt.axis([-5.0, 5.0, -5.0, 5.0])
+    fS = 18
+    for im in range(num_fit) : 
+        plt.plot(x_fit[:,0,im],x_fit[:,1,im], linewidth=2.0)
+        if not x_new is None :
+            plt.plot(x_new[:,0,im],x_new[:,1,im], linewidth=1.0,linestyle='--')
+    plt.plot(np.linspace(-3,3,10),3 / 2 * np.linspace(-3,3,10) + 3)
+    plt.plot(np.linspace(-3,3,10),- 3 / 2 * np.linspace(-3,3,10) + 3)
+    plt.plot(x_t[0],x_t[1],"o")
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.xlabel('X (m)', fontsize = fS)
+    plt.ylabel('Y (m)', fontsize = fS)
+    plt.grid(True)
+    plt.subplot(122)
+    plt.axis([0.0, N+1, 0.0, 2.0])
+    for im in range(num_fit) : 
+        plt.plot(range(0,N+1),x_fit[:,2,im], linewidth=2.0)
+    plt.xlabel('time (s)', fontsize = fS)
+    plt.ylabel('Z (m)', fontsize = fS)
+    plt.show()
+
+    plt.figure(2,figsize=(20, 7)) 
+    plt.subplot(131)
+    plt.axis([0.0, N+1, -np.pi, np.pi])
+    for im in range(num_fit) : 
+        plt.plot(range(0,N+1),x_fit[:,3,im], linewidth=2.0)
+    plt.xlabel('time (s)', fontsize = fS)
+    plt.ylabel('roll (rad)', fontsize = fS)
+    plt.subplot(132)
+    plt.axis([0.0, N+1, -np.pi, np.pi])
+    for im in range(num_fit) : 
+        plt.plot(range(0,N+1),x_fit[:,4,im], linewidth=2.0)
+    plt.xlabel('time (s)', fontsize = fS)
+    plt.ylabel('pitch (rad)', fontsize = fS)
+    plt.subplot(133)
+    plt.axis([0.0, N+1, -np.pi, np.pi])
+    for im in range(num_fit) : 
+        plt.plot(range(0,N+1),x_fit[:,5,im], linewidth=2.0)
+    plt.xlabel('time (s)', fontsize = fS)
+    plt.ylabel('yaw (rad)', fontsize = fS)
+    plt.show()
+
+    plt.figure(3,figsize=(20, 7)) 
+    plt.subplot(141)
+    for im in range(num_fit) : 
+        plt.plot(range(0,N),u_fit_m[:,0,im], linewidth=2.0)
+    plt.xlabel('time (s)', fontsize = fS)
+    # plt.ylabel('v (m/s)', fontsize = fS)
+
+    plt.subplot(142)
+    for im in range(num_fit) : 
+        plt.plot(range(0,N),u_fit_m[:,1,im], linewidth=2.0)
+    plt.xlabel('time (s)', fontsize = fS)
+    # plt.ylabel('w (rad/s)', fontsize = fS)
+    plt.subplot(143)
+    for im in range(num_fit) : 
+        plt.plot(range(0,N),u_fit_m[:,2,im], linewidth=2.0)
+    plt.xlabel('time (s)', fontsize = fS)
+    plt.subplot(144)
+    for im in range(num_fit) : 
+        plt.plot(range(0,N),u_fit_m[:,3,im], linewidth=2.0)
+    plt.xlabel('time (s)', fontsize = fS)
+    plt.show()
+
+    # plt.figure(4,figsize=(20, 7))
+    # for im in range(num_fit) : 
+    #     plt.plot(range(0,N+1),getFOAQuad(x_t,x_fit[:,:,im]), linewidth=2.0)
+    # plt.plot(range(0,N),u_fit_m[:,0,im]*0 + 0.6, linewidth=1.0,linestyle='--')   
+    # plt.plot(range(0,N),u_fit_m[:,0,im]*0 - 0.6, linewidth=1.0,linestyle='--')  
+    # plt.xlabel('time (s)', fontsize = fS)
+    # plt.ylabel('angle (rad/s)', fontsize = fS)
+    # plt.show()
+
+def getFOAQuad(x_t,x) :
+
+    ndim = np.ndim(x)
+    if ndim == 1: # 1 step state & input
+        N = 1
+        x = np.expand_dims(x,axis=0)
+    else :
+        N = np.size(x,axis = 0)
+
+    # theta diff
+    y_diff = np.zeros((N,1))
+    x_diff = np.zeros((N,1))
+    y_diff[:,0] = x_t[1] - x[:,1]
+    x_diff[:,0] = x_t[0] - x[:,0]
+    
+    theta_target = np.arctan2(y_diff,x_diff)
+    theta_diff = - np.expand_dims(x[:,5],1) + theta_target
+
+    # return theta_diff
+    return np.squeeze(theta_diff,axis=1)
